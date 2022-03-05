@@ -14,7 +14,7 @@
 	<name>bank-customer</name>
 	<description>Bank OTP</description>
 	<properties>
-		<java.version>11</java.version>
+		<java.version>17</java.version>
 		<spring-cloud.version>2020.0.2</spring-cloud.version>
 	</properties>
 	<dependencies>

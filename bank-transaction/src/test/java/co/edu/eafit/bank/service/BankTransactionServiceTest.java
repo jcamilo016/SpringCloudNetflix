@@ -140,7 +140,7 @@ public class BankTransactionServiceTest {
 			String accountId = "4640-0341-9387-5781";
 			DepositDTO depositDTO = new DepositDTO(accountId, 15000.0, "vondrusek1@wisc.edu");
 			String messageExpected = "The account with id " + accountId + " was not found";
-			when(accountService.findById(accountId)).thenReturn(Optional.ofNullable(null));
+			when(accountService.findById(accountId)).thenReturn(Optional.empty());
 
 			// Act
 			Exception exception = assertThrows(AccountNotFoundException.class, () -> {
@@ -158,7 +158,7 @@ public class BankTransactionServiceTest {
 			DepositDTO depositDTO = new DepositDTO(accountId, 15000.0, "vondrusek1@wisc.edu");
 			String messageExpected = "La cuenta con id " + accountId + " no esta activa";
 			Account account = AccountBuilder.getAccountDisable();
-			when(accountService.findById(accountId)).thenReturn(Optional.ofNullable(account));
+			when(accountService.findById(accountId)).thenReturn(Optional.of(account));
 
 			// Act
 			Exception exception = assertThrows(AccountNotEnableException.class, () -> {
@@ -180,8 +180,8 @@ public class BankTransactionServiceTest {
 			String messageExpected = "La user con Email " + userEmail + " no esta existe";
 			Account account = AccountBuilder.getAccount();
 
-			when(accountService.findById(accountId)).thenReturn(Optional.ofNullable(account));
-			when(userService.findById(userEmail)).thenReturn(Optional.ofNullable(null));
+			when(accountService.findById(accountId)).thenReturn(Optional.of(account));
+			when(userService.findById(userEmail)).thenReturn(Optional.empty());
 
 			// Act
 			Exception exception = assertThrows(UserNotFoundException.class, () -> {
@@ -269,8 +269,9 @@ public class BankTransactionServiceTest {
 			Double amount = 15000.0;
 			String userEmail = "vondrusek1@wisc.edu";
 			TransactionResultDTO transactionResultDTO = null;
+			String token = "12345";
 
-			TransferDTO transferDTO = new TransferDTO(accoIdOrigin, accoIdDestination, amount, userEmail);
+			TransferDTO transferDTO = new TransferDTO(accoIdOrigin, accoIdDestination, amount, userEmail, token);
 
 			Account accountOrigin = AccountBuilder.getAccount();
 			accountOrigin.setAccoId(accoIdOrigin);
@@ -300,7 +301,7 @@ public class BankTransactionServiceTest {
 			when(transactionTypeService.findById(3)).thenReturn(Optional.ofNullable(transactionTypeTransfer));
 
 			when(transactionService.save(any(Transaction.class))).then(new Answer<Transaction>() {
-				int sequence = 1;
+				final int sequence = 1;
 
 				@Override
 				public Transaction answer(InvocationOnMock invocation) throws Throwable {

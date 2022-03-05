@@ -3,7 +3,9 @@ package co.edu.eafit.bank.service;
 import java.sql.Timestamp;
 import java.util.Optional;
 
+import co.edu.eafit.bank.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -13,15 +15,13 @@ import co.edu.eafit.bank.domain.Account;
 import co.edu.eafit.bank.domain.Transaction;
 import co.edu.eafit.bank.domain.TransactionType;
 import co.edu.eafit.bank.domain.Users;
-import co.edu.eafit.bank.dto.DepositDTO;
-import co.edu.eafit.bank.dto.TransactionResultDTO;
-import co.edu.eafit.bank.dto.TransferDTO;
-import co.edu.eafit.bank.dto.WithdrawDTO;
 import co.edu.eafit.bank.entityservice.AccountService;
 import co.edu.eafit.bank.entityservice.TransactionService;
 import co.edu.eafit.bank.entityservice.TransactionTypeService;
 import co.edu.eafit.bank.entityservice.UsersService;
 import co.edu.eafit.bank.exception.ZMessManager;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 
 @Service
@@ -41,6 +41,9 @@ public class BankTransactionServiceImpl implements BankTransactionService {
 
 	@Autowired
 	TransactionService transactionService;
+
+	@Autowired
+	WebClient otpClient;
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
@@ -67,18 +70,26 @@ public class BankTransactionServiceImpl implements BankTransactionService {
 		TransactionType transactionType = transactionType3.get();
 
 		Optional<Account> accountOptional = accountService.findById(transferDTO.getAccoIdOrigin());
-		if (!accountOptional.isPresent()) {
+		if (accountOptional.isEmpty()) {
 			throw (new ZMessManager()).new FindingException("cuenta con id " + transferDTO.getAccoIdOrigin());
 		}
 
 		Account account = accountOptional.get();
 
 		Optional<Users> userOptional = userService.findById(transferDTO.getUserEmail());
-		if (!userOptional.isPresent()) {
+		if (userOptional.isEmpty()) {
 			throw (new ZMessManager()).new FindingException("Usuario con id " + transferDTO.getUserEmail());
 		}
 
 		Users user = userOptional.get();
+
+		//Se valida el token contra el servicio
+		OTPValidationResponse otpValidationResponse =
+				validateToken(user.getUserEmail(), transferDTO.getToken());
+
+		if (otpValidationResponse == null || !otpValidationResponse.getValid()) {
+			throw new Exception("Not valid OTP");
+		}
 
 		Transaction transaction = new Transaction();
 		transaction.setAccount(account);
@@ -92,6 +103,22 @@ public class BankTransactionServiceImpl implements BankTransactionService {
 
 		return new TransactionResultDTO(transaction.getTranId(), withdrawResult.getBalance());
 
+	}
+
+	private OTPValidationResponse validateToken(String user, String otp) {
+
+		String jsonBody = "{"
+				+ " \"user\": \""+user+"\","
+				+ " \"otp\": \""+otp+"\" "
+				+ "}";
+
+		Mono<OTPValidationResponse> monoResponse = otpClient.post()
+				.header("Content-Type", "application/json")
+				.bodyValue(jsonBody)
+				.retrieve()
+				.bodyToMono(OTPValidationResponse.class);
+
+		return monoResponse.block();
 	}
 
 	@Override
