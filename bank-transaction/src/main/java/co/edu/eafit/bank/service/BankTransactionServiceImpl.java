@@ -4,8 +4,8 @@ import java.sql.Timestamp;
 import java.util.Optional;
 
 import co.edu.eafit.bank.dto.*;
+import co.edu.eafit.bank.openfeignclients.OTPServiceClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -20,8 +20,6 @@ import co.edu.eafit.bank.entityservice.TransactionService;
 import co.edu.eafit.bank.entityservice.TransactionTypeService;
 import co.edu.eafit.bank.entityservice.UsersService;
 import co.edu.eafit.bank.exception.ZMessManager;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 
 @Service
@@ -43,7 +41,7 @@ public class BankTransactionServiceImpl implements BankTransactionService {
 	TransactionService transactionService;
 
 	@Autowired
-	WebClient otpClient;
+	OTPServiceClient otpServiceClient;
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
@@ -106,19 +104,8 @@ public class BankTransactionServiceImpl implements BankTransactionService {
 	}
 
 	private OTPValidationResponse validateToken(String user, String otp) {
-
-		String jsonBody = "{"
-				+ " \"user\": \""+user+"\","
-				+ " \"otp\": \""+otp+"\" "
-				+ "}";
-
-		Mono<OTPValidationResponse> monoResponse = otpClient.post()
-				.header("Content-Type", "application/json")
-				.bodyValue(jsonBody)
-				.retrieve()
-				.bodyToMono(OTPValidationResponse.class);
-
-		return monoResponse.block();
+		OTPValidationRequest otpValidationRequest = new OTPValidationRequest(user, otp);
+		return otpServiceClient.validateOTP(otpValidationRequest);
 	}
 
 	@Override
