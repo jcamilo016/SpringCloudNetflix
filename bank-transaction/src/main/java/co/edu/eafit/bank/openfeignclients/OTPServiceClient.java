@@ -9,12 +9,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import javax.validation.Valid;
 
 @FeignClient(
-        url = "${otp.service.url}",
-        value = "otp-service"
+        value = "bank-otp"
 )
 public interface OTPServiceClient {
 
-    @PostMapping("/validate")
+    @PostMapping("/api/v1/otp/validate")
     OTPValidationResponse validateOTP(
             @Valid @RequestBody
                     OTPValidationRequest otpValidationRequest);
