@@ -4,7 +4,7 @@ import java.sql.Timestamp;
 import java.util.Optional;
 
 import co.edu.eafit.bank.dto.*;
-import co.edu.eafit.bank.openfeignclients.OTPServiceClient;
+import co.edu.eafit.bank.openfeignclients.FeignClients;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
@@ -41,7 +41,7 @@ public class BankTransactionServiceImpl implements BankTransactionService {
 	TransactionService transactionService;
 
 	@Autowired
-	OTPServiceClient otpServiceClient;
+	OTPServiceCircuitBreaker otpServiceCircuitBreaker;
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
@@ -103,9 +103,8 @@ public class BankTransactionServiceImpl implements BankTransactionService {
 
 	}
 
-	private OTPValidationResponse validateToken(String user, String otp) {
-		OTPValidationRequest otpValidationRequest = new OTPValidationRequest(user, otp);
-		return otpServiceClient.validateOTP(otpValidationRequest);
+	private OTPValidationResponse validateToken(String user, String otp) throws Exception {
+		return otpServiceCircuitBreaker.validateToken(user, otp);
 	}
 
 	@Override

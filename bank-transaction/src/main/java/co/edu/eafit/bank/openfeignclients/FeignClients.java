@@ -8,14 +8,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.validation.Valid;
 
-@FeignClient(
-        value = "bank-otp"
-)
-public interface OTPServiceClient {
-
-    @PostMapping("/api/v1/otp/validate")
-    OTPValidationResponse validateOTP(
-            @Valid @RequestBody
-                    OTPValidationRequest otpValidationRequest);
-
+@FeignClient(value = "api-gateway")
+public interface FeignClients {
+    @PostMapping("/bank-otp/api/v1/otp/validate")
+    OTPValidationResponse validateOTP(@Valid @RequestBody OTPValidationRequest otpValidationRequest);
 }
